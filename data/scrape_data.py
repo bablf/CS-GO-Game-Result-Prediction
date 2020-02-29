@@ -39,29 +39,50 @@ import importlib.util
 import pprint
 import csv
 from datetime import datetime, timedelta
+import numpy as np
+from sklearn.model_selection import train_test_split
 
 # import hltv api
-spec = importlib.util.spec_from_file_location("hltv", os.path.dirname(os.path.abspath( __file__ )) + "/api/hltv-api/main.py")
-hltv = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(hltv)
+# spec = importlib.util.spec_from_file_location("hltv", os.path.dirname(os.path.abspath( __file__ )) + "/api/hltv-api/main.py")
+# hltv = importlib.util.module_from_spec(spec)
+# spec.loader.exec_module(hltv)
 
 def import_csv(csvfilename): # https://stackoverflow.com/a/53483446
-    data = []
+    """
+    This funciton takes a csv file and returns a array of arrays
+    [[    ],
+     [    ],
+     [    ],
+      ...   ]
+    """
+    data_x = [] # Feature
+    data_y = [] # Goldlabel
+    row_index = 1
     with open(csvfilename, "r", encoding="utf-8", errors="ignore") as scraped:
         reader = csv.reader(scraped, delimiter=',')
+        first_row = next(reader)  # skip to second line, because first doent have values
         for row in reader:
             if row:  # avoid blank lines
                 row_index += 1
-                columns = [str(row_index), row[0], row[1], row[2]]
-                data.append(columns)
-        return data
+                x = row[5:-2] # take feature information
+                y = float(row[-1]) # take Goldlabel
+                x = [0.0 if elem == "-" else float(elem) for elem in x] # remove "-" und set to float
+                data_x.append(x)
+                data_y.append(y)
+        return np.array(data_x), np.array(data_y) # make numpy array
+
 
 if __name__ == "__main__" :
     pp = pprint.PrettyPrinter()
 
 
 
-    saved_matches = import_csv("matches.csv")
+
+    data_x, data_y = import_csv("Test 1.csv")
+    print(data_x)
+    print(data_x.shape)
+    print(data_y)
+    print(data_y.shape)
 
     """
     date, event, url, team1, team2, team1_rank, team1_weighted_rank, team2_rank, team2_weighted_rank, team1_player1_rating, team1_player2_rating, team1_player3_rating,
@@ -77,17 +98,17 @@ if __name__ == "__main__" :
     #if last_match[0] >= datetime.now() - timedelta(days=5): # last match older than 5 days
      #   print("Match import complete.")
       #  exit
-    
+
     new_matches = []
     results = []
-    
+
     while True: # import matches one month at a time
 
         if len(saved_matches) < 2 and len(new_matches) == 0: # no matches added yet
             print("Importing matches from 2017-01-01 to 2017-01-02 ...")
             startdate = "2017-01-12"
             enddate = "2017-01-12" # 2020-02-28
-        
+
         results = hltv.get_results_by_date(startdate, enddate) # yyyy-mm-dd
 
         for result in results:

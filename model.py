@@ -59,7 +59,7 @@ class Model(nn.Module):
     def __init__(self):
         super().__init__()
         self.Convolution = nn.Conv3D
-        self.Dense =
+        #self.Dense =
         # sigmoid OR tanh activation beides Testen!
 
     def forward(self, match):

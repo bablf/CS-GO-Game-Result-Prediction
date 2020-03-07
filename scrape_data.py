@@ -38,9 +38,13 @@ import os
 import importlib.util
 import pprint
 import csv
-from datetime import datetime, timedelta
 import numpy as np
+from model imoprt model
+
+#from torch import nn
+from datetime import datetime, timedelta
 from sklearn.model_selection import train_test_split
+
 
 # import hltv api
 # spec = importlib.util.spec_from_file_location("hltv", os.path.dirname(os.path.abspath( __file__ )) + "/api/hltv-api/main.py")
@@ -49,40 +53,45 @@ from sklearn.model_selection import train_test_split
 
 def import_csv(csvfilename): # https://stackoverflow.com/a/53483446
     """
-    This funciton takes a csv file and returns a array of arrays
-    [[    ],
-     [    ],
-     [    ],
-      ...   ]
+    This funciton takes a csv file and returns a dataset looking like this
+    [(match_matrix, winner),  ... ]
     """
     data_x = [] # Feature
-    data_y = [] # Goldlabel
     row_index = 1
     with open(csvfilename, "r", encoding="utf-8", errors="ignore") as scraped:
-        reader = csv.reader(scraped, delimiter=',')
+        reader = csv.reader(scraped, delimiter=';')
         first_row = next(reader)  # skip to second line, because first doent have values
         for row in reader:
+            team1, team2 = [],[]
             if row:  # avoid blank lines
-                row_index += 1
-                x = row[5:-2] # take feature information
                 y = float(row[-1]) # take Goldlabel
-                x = [0.0 if elem == "-" else float(elem) for elem in x] # remove "-" und set to float
-                data_x.append(x)
-                data_y.append(y)
-        return np.array(data_x), np.array(data_y) # make numpy array
+                x = [0.0 if elem == "" else float(elem) for elem in row[5:-1]] # remove "-" und set to float
+                t1 = x[:20]
+                t2 = x[20:]
+                for i in range(0,5):    # group all player features
+                    player = t1[i::5]
+                    team1.append(player)
+                for i in range(0,5):    # group all player features
+                    player = t2[i::5]
+                    team2.append(player)
+
+            data.append((np.array([team1,team2]),y))
+
+        return data
 
 
+
+
+        return preds
 if __name__ == "__main__" :
     pp = pprint.PrettyPrinter()
 
+    data = import_csv("data/past_matches.csv")
+    # divide data in train, (development), test data
+    # call NN
 
 
 
-    data_x, data_y = import_csv("Test 1.csv")
-    print(data_x)
-    print(data_x.shape)
-    print(data_y)
-    print(data_y.shape)
 
     """
     date, event, url, team1, team2, team1_rank, team1_weighted_rank, team2_rank, team2_weighted_rank, team1_player1_rating, team1_player2_rating, team1_player3_rating,

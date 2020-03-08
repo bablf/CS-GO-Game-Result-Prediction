@@ -2,6 +2,15 @@
 This program scrapes all the HLTV data we could EVER need
 """
 
+"""
+ToDo
+
+- Return needed array
+- Save matches in upcoming_matches.csv
+- Delete past matches on program start from csv
+- 
+"""
+
 from bs4 import BeautifulSoup
 import requests
 from datetime import datetime
@@ -20,6 +29,8 @@ def import_upcoming_matches(matches):
     """
     This function parses the upcoming matches from https://www.hltv.org/betting/money ,
     parses the match pages, parses the player pages, and returns an array of arrays
+
+    Use -1 to parse all upcoming matches
 
     [
         [ # match
@@ -72,7 +83,7 @@ def import_upcoming_matches(matches):
             print("Parsed match page of " + team1 + " vs " + team2 + ".\nTimestamp: " + unix_timestamp + "\nURL: " + match_url + "\n3 month rating of players: " + str(weighted_ranks_list) + "\n")
 
         # extract player profile links for rank, top10, maps_played
-        player_bare_list = re.findall('/stats/players/[0-9]+/\w+', container) # "statsLinkUrl":"/stats/players/10784/RuStY"
+        player_bare_list = re.findall(r'/stats/players/[0-9]+/\w+', container) # "statsLinkUrl":"/stats/players/10784/RuStY"
         player_link_list = []
 
         for player_link in player_bare_list: # convert to full links + extract 10 players
@@ -84,7 +95,7 @@ def import_upcoming_matches(matches):
             stats_row = str(soup.find_all(class_="stats-row"))
 
             # extract rating
-            ranks_list = str(re.findall("Rating 2\.0<\/span><span class=\"strong\">[0-2].[0-9]{2}<\/span><\/div>", stats_row)).replace('Rating 2.0</span><span class=\"strong\">', "").replace("</span></div>", "")
+            ranks_list = str(re.findall(r"Rating 2\.0<\/span><span class=\"strong\">[0-2].[0-9]{2}<\/span><\/div>", stats_row)).replace('Rating 2.0</span><span class=\"strong\">', "").replace("</span></div>", "")
 
             # extract top10 rating
             opponent_rating = str(soup.find_all(class_="rating-value")[1]).replace('<div class="rating-value">', "").replace("</div>","")
@@ -94,7 +105,7 @@ def import_upcoming_matches(matches):
 #           top10_list = str(re.findall("", stats_row).replace("", "").replace("", ""))
 
             # extract maps played
-            maps_played_list = str(re.findall("Maps played<\/span><span>[0-9]+<\/span>", stats_row)).replace("Maps played</span><span>","").replace("</span>","")
+            maps_played_list = str(re.findall(r"Maps played<\/span><span>[0-9]+<\/span>", stats_row)).replace("Maps played</span><span>","").replace("</span>","")
 
             if DEBUG == 1:
                 print("Parsed player page " + player_profile + "\nRating: " + ranks_list + "\nRating vs Top 10: " + opponent_rating + "\nMaps played: " + maps_played_list + "\n")

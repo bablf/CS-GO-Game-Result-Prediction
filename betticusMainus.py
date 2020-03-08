@@ -33,9 +33,6 @@ def parse_page(url):
     result = requests.get(url)
     c = result.content
     soup = BeautifulSoup(c, "lxml")
-    if "rate limited" or "CAPTCHA" in soup:
-        print("\n\nHLTV block on parsing, exiting.\n\n")
-        raise SystemExit
     return soup
 
 def import_past_matches(csvfilename):
@@ -111,7 +108,7 @@ def import_upcoming_matches(matches):
     if matches == -1:
         matches = len(team_list) # scrape all matches
 
-    for i in range (0, matches, 2): # for each match
+    for i in range (0, matches*2, 2): # for each match
         team1 = team_list[i].split(",")[0]
         team2 = team_list[i + 1].split(",")[0]
         match_url = team_list[i].split(",")[1]
@@ -164,9 +161,10 @@ def import_upcoming_matches(matches):
             if DEBUG == 1:
                 print("Parsed player page " + player_profile + "\nRating: " + ranks_list + "\nRating vs Top 10: " + opponent_rating + "\nMaps played: " + maps_played_list + "\n")
 
-        if DEBUG == 1:
-            print("Sleeping for 30 seconds to prevent IP ban")
-        time.sleep(30)
+        if i < matches:
+            if DEBUG == 1:
+                print("Sleeping for 10 seconds to prevent IP ban")
+            time.sleep(10)
 
         #all_matches.append(date, event, match_url, team1, team2, ranks_list[:5], weighted_ranks_list[:5], top10_list[:5], maps_played_list[:5], ranks_list[-5:], weighted_ranks_list[-5:], top10_list[-5:], maps_played_list[-5:])
     return all_matches
@@ -200,4 +198,4 @@ if __name__ == "__main__" :
     print(data_y.shape)
     """
 
-    print(import_upcoming_matches(1))
+    print(import_upcoming_matches(2))

@@ -86,6 +86,8 @@ def train(model, dataset, epochs, batchsize, learning_rate, model_file):
             matches = matches.to(device)
             goldlabels = goldlabels.to(device)
             predictions = model(match)
+            print("debug")
+            print("predictions: ",predictions)
             loss = loss_func(predictions, goldlabel) # IF ODDS custom Loss funct.
             running_loss += loss.item()
             i += 1
@@ -112,20 +114,28 @@ class Model(nn.Module):
         out_channels (python:int) – Number of channels produced by the convolution
         kernel_size (python:int or tuple) – Size of the convolving kernel
         """
-        self.Convolution = nn.Conv1d(4,,, groups=2) # Filter muss 1x10 sein
+        self.Convolution = nn.Conv1d(in_channels=1,out_channels=1,kernel_size=(5,1)) # Filter muss 1x10 sein
         self.Dense64 = nn.Linear(4, 64) # ((Batch_size) x 2x NUMB_FEAT)
         self.Dense16 = nn.Linear(64,16)
         self.Dense1  = nn.Linear(16,1)
 
     def forward(self, matches):
         print(matches.shape)
-        conv_out = self.Convolution(matches)
-        print(conv_out.shape)
-        x64 = F.tanh(self.Dense64(conv_out))
-        x16 = F.tanh(self.Dense16(x64))
-        #prediction = nn.Sigmoid()(self.Dense1(x16)) #only one of the two
-        prediction = F.tanh(self.Dense1(x16))
 
+        team1, team2 = matches
+        team1 = unsqueeze(unsqueeze(team1,0),0)
+        team2 = unsqueeze(unsqueeze(team2,0),0)
+        print(team1.shape)
+        #conv_out = self.Convolution(matches)
+        conv_out1 = self.Convolution(team1).view(1,4)
+        conv_out2 = self.Convolution(team2).view(1,4)
+        # concat the matrices:
+        team_feature = torch.cat((conv_out1, conv_out2),0)
+        x64 = torch.tanh(self.Dense64(team_feature))
+        x16 = torch.tanh(self.Dense16(x64))
+        #prediction = nn.Sigmoid()(self.Dense1(x16)) #only one of the two
+        prediction = torch.tanh(self.Dense1(x16))
+        print(prediction)
         return prediction
 
 if __name__ == "__main__" :
@@ -141,4 +151,5 @@ if __name__ == "__main__" :
     # TODO: train_test_split
 
     ezBetticus = Model()
+    print(ezBetticus.Convolution.weight.shape)
     train(ezBetticus, dataset, epochs, batchsize, learning_rate,  model_file) # train and (will) save the best model EUWEST

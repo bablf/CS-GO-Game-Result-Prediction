@@ -92,7 +92,7 @@ def calculate_betsize(win_probability):
   # calculate variance of profit on a single outcome
   # calculate variance of the cumulative profit
   # calculate pareto front (on/from what?)
-  # calculate sharpe ratio
+  # calculate sharpe ratio 
   # calculate unique maximizer of sharpe ratio through sequential quadratic programming 
   # set confidence threshold for bet at 50% (or even more?)
   # round final bet size because betting sites tend to ban users using odd numbers (to fight arbitrage betting)

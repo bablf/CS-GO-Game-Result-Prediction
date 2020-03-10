@@ -8,6 +8,7 @@ from torch import nn, optim, from_numpy, unsqueeze
 
 from tqdm import tqdm
 from sklearn.model_selection import train_test_split
+from sklearn.metrics import f1_score
 
 
 def import_csv(csvfilename): # https://stackoverflow.com/a/53483446
@@ -15,8 +16,7 @@ def import_csv(csvfilename): # https://stackoverflow.com/a/53483446
     This funciton takes a csv file and returns a dataset looking like this
     [(match_matrix, winner),  ... ]
     """
-    data = [] # Feature
-    row_index = 1
+    data_x, data_y = [],[] # Feature
     with open(csvfilename, "r", encoding="utf-8", errors="ignore") as scraped:
         reader = csv.reader(scraped, delimiter=';')
         first_row = next(reader)  # skip to second line, because first doent have values
@@ -24,7 +24,7 @@ def import_csv(csvfilename): # https://stackoverflow.com/a/53483446
             team1, team2 = [],[]
             if row:  # avoid blank lines
                 y = float(row[-1]) # take Goldlabel
-                winner = 1.0 if y == 2.0 else 0.0
+                winner = [0.0, 1.0] if y == 2.0 else [1.0, 0.0]
                 x = [0.0 if elem == "" else float(elem) for elem in row[5:-1]] # remove "-" und set to float
                 t1 = x[:20]
                 t2 = x[20:]
@@ -35,19 +35,21 @@ def import_csv(csvfilename): # https://stackoverflow.com/a/53483446
                     player = t2[i::5]
                     team2.append(player)
 
-            data.append((np.array([team1,team2]),winner))
+            data_x.append(np.array([team1,team2]))
+            data_y.append(np.array(winner))
 
-        return data
+        return np.array(data_x), np.array(data_y)
 
 class DatasetIterator():
     """
     berechnet den Goldlabel-Satzvektor "on demand"
     """
     def __init__(self, dataset, batchsize):
-        self.dataset = dataset
+        self.matches, self.winners = dataset
         self.batchsize = batchsize
 
     def __iter__(self):
+        # !!!!!!!!!!!!!!!!  DO NOT DELETE COMMENTS !!!!!!!!!!!!!!!!!!
         #matches, winners = [], []
         #matches = [item[0] for item in self.dataset]
         #winner = [item[1] for item in self.dataset]
@@ -56,21 +58,38 @@ class DatasetIterator():
 
         #for i in range(0, len(matches), batchsize):
         #    yield from_numpy(matches[i:i + batchsize]).float(), from_numpy(winner[i:i + batchsize]).float()
-        for match, winner in self.dataset:
-            yield from_numpy(match).float(), winner
+
+        for match, winner in zip(self.matches,self.winners):
+            yield from_numpy(match).float(), from_numpy(winner).float()
 
     def __len__(self):
-        return len(self.dataset)
+        return len(self.matches)
+
+
+def converter(preds):
+    if preds[0] > preds[1]:
+        return torch.tensor([1.0, 0.0])
+    elif preds[0] < preds[1]:
+        return torch.tensor([0.0, 1.0])
+    else return torch.tensor([2.0, 2.0])
+
+def f1_score(preds, goldlabel):
+    right = 0
+    for pred, gold in zip(preds, goldlabel)
+        if torch.eq(a, b):
+            right +=1
+    return right/len(preds)
 
                                                         # TODO: dataparam?
-def train(model, dataset, epochs, batchsize, learning_rate, model_file):
+def train(model, data_x, data_y, epochs, batchsize, learning_rate, model_filepath):
+
     opt = optim.SGD(model.parameters(), lr=learning_rate, weight_decay=0.001) # Optimizer = Stocastic Gradient Descent
     loss_func = nn.MSELoss() # loss-Function = Mean Squard Error
-
+    old_accuracy = 0.0
     for epoch in range(1, epochs + 1): # Epochen die iteriert werden soll
         i, running_loss = 0, 0
-        random.shuffle(dataset) # Shuffle Matches
-        train_iter = DatasetIterator(dataset, batchsize) # für alle Matches (yield)
+        x_train, x_test, y_train, y_test = train_test_split(data_x, data_y, test_size=0.20) # Shuffle Matches
+        train_iter = DatasetIterator((x_train, y_train), batchsize) # für alle Matches (yield)
         model.train()  # turn on training mode
         for match, goldlabel in tqdm(train_iter):
             opt.zero_grad()
@@ -81,25 +100,34 @@ def train(model, dataset, epochs, batchsize, learning_rate, model_file):
 
         model.eval()  # turn on evaluation mode
         print("\n--- EVALUIERUNG ---")
-        test_iter = DatasetIterator(data, data.dev_parses)
-        for matches, goldlabels in tqdm(test_iter):
-            matches = matches.to(device)
-            goldlabels = goldlabels.to(device)
+        test_iter = DatasetIterator((x_test,y_test),batchsize)
+        list_preds, list_goldlabel = [],[]
+
+        for match, goldlabel in tqdm(test_iter):
+            # matches = matches.to(device)
+            # goldlabels = goldlabels.to(device)
+
             predictions = model(match)
-            print("debug")
-            print("predictions: ",predictions)
-            loss = loss_func(predictions, goldlabel) # IF ODDS custom Loss funct.
+            loss = loss_func(predictions, goldlabel)
             running_loss += loss.item()
+
+            list_preds.append(converter(predictions))
+            list_goldlabel.append(goldlabel)
             i += 1
-            if i % 2000 == 1999:    # print every 2000 matches
+            if i % 2000 == 1999:    # print every 200 matches
             # TODO: Bestes Model abspeichern
-                print('[%d, %5d] loss: %.3f' %
-                      (epoch + 1, i + 1, running_loss / 2000))
+                accuracy = calc_acc(list_preds, list_goldlabel)
+                print('[%d, %5d] loss: %.3f acc: %.3f' %
+                      (epoch + 1, i + 1, running_loss / 2000, accuracy))
                 running_loss = 0.0
+                if accuracy > old_accuracy:
+                    save_model(model, model_filepath)
+
+
         print("\nEpoche fertig {}/{},".format(epoch, epochs))
 
 
-def save_model(model, model_filepath='model.pkl', data_filepath='data_params.pkl'):
+def save_model(model, model_filepath='model.pkl'):
     """
     Speichert das model + parameter
     """
@@ -118,14 +146,12 @@ class Model(nn.Module):
         self.Dense64 = nn.Linear(4, 64) # ((Batch_size) x 2x NUMB_FEAT)
         self.Dense16 = nn.Linear(64,16)
         self.Dense1  = nn.Linear(16,1)
+        #self.Sigmoid = nn.Sigmoid()
 
     def forward(self, matches):
-        print(matches.shape)
-
         team1, team2 = matches
         team1 = unsqueeze(unsqueeze(team1,0),0)
         team2 = unsqueeze(unsqueeze(team2,0),0)
-        print(team1.shape)
         #conv_out = self.Convolution(matches)
         conv_out1 = self.Convolution(team1).view(1,4)
         conv_out2 = self.Convolution(team2).view(1,4)
@@ -133,23 +159,23 @@ class Model(nn.Module):
         team_feature = torch.cat((conv_out1, conv_out2),0)
         x64 = torch.tanh(self.Dense64(team_feature))
         x16 = torch.tanh(self.Dense16(x64))
+        prediction = torch.tanh(self.Dense1(x16)).view(2)
         #prediction = nn.Sigmoid()(self.Dense1(x16)) #only one of the two
-        prediction = torch.tanh(self.Dense1(x16))
-        print(prediction)
+        #prediction = self.Sigmoid(x)
+        #print(prediction.shape)
+        #print(prediction)
         return prediction
 
 if __name__ == "__main__" :
 # Values can be changed, to (maybe) improve perfermance a bit
     learning_rate = 0.0001
-    epochs = 20
+    epochs = 10
     batchsize = 200
 
-    model_file = "./data/model.pkl"
+    model_filepath = "./data/model.pkl"
     print("===== Daten werden gelesen======\n")
-    dataset = import_csv("./data/past_matches.csv")
+    data_x, data_y = import_csv("./data/past_matches.csv")
     print("===== Daten eingelesen ======")
-    # TODO: train_test_split
-
+    print(data_x.shape)
     ezBetticus = Model()
-    print(ezBetticus.Convolution.weight.shape)
-    train(ezBetticus, dataset, epochs, batchsize, learning_rate,  model_file) # train and (will) save the best model EUWEST
+    train(ezBetticus, data_x, data_y, epochs, batchsize, learning_rate,  model_filepath) # train and (will) save the best model EUWEST

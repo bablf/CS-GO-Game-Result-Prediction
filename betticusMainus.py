@@ -77,13 +77,24 @@ def calculate_winner(match):
 
   pass
 
-def calculate_betsize(winning_probability, total_budget):
+def calculate_betsize(win_probability):
   """
   This function calculates the bet size and returns an integer
 
+  opt = whole strategy described in 5.1
+
+  variance (of profit on a single outcome) found at (11) in 5.1
+  Sharpe ratio: https://towardsdatascience.com/calculating-sharpe-ratio-with-python-755dcb346805
+  sequential quadratic programming algo in Python: https://github.com/JimVaranelli/ActiveSet
 
   """
 
+  # calculate variance of profit on a single outcome
+  # calculate variance of the cumulative profit
+  # calculate pareto front (on/from what?)
+  # calculate sharpe ratio
+  # calculate unique maximizer of sharpe ratio through sequential quadratic programming 
+  # set confidence threshold for bet at 50% (or even more?)
   # round final bet size because betting sites tend to ban users using odd numbers (to fight arbitrage betting)
   pass
 

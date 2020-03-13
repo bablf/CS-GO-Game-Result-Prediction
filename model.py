@@ -67,16 +67,16 @@ class DatasetIterator():
 
 
 def converter(preds):
-    if preds[0] > preds[1]:
+    if preds[0] > preds[1]: # home team won
         return torch.tensor([1.0, 0.0])
-    elif preds[0] < preds[1]:
+    elif preds[0] < preds[1]: # away team won
         return torch.tensor([0.0, 1.0])
-    else return torch.tensor([2.0, 2.0])
+    else: return torch.tensor([2.0,2.0]) # same size no correct clasification
 
-def f1_score(preds, goldlabel):
+def calc_acc(preds, goldlabel):
     right = 0
-    for pred, gold in zip(preds, goldlabel)
-        if torch.eq(a, b):
+    for pred, gold in zip(preds, goldlabel):
+        if torch.equal(pred, gold):
             right +=1
     return right/len(preds)
 
@@ -84,25 +84,29 @@ def f1_score(preds, goldlabel):
 def train(model, data_x, data_y, epochs, batchsize, learning_rate, model_filepath):
 
     opt = optim.SGD(model.parameters(), lr=learning_rate, weight_decay=0.001) # Optimizer = Stocastic Gradient Descent
-    loss_func = nn.MSELoss() # loss-Function = Mean Squard Error
+    loss_func = nn.MSELoss(reduction='sum') # loss-Function = Sum Squard Error
     old_accuracy = 0.0
     for epoch in range(1, epochs + 1): # Epochen die iteriert werden soll
         i, running_loss = 0, 0
-        x_train, x_test, y_train, y_test = train_test_split(data_x, data_y, test_size=0.20) # Shuffle Matches
+        #list_train_preds, list_train_goldlabel = [],[]
+        x_train, x_test, y_train, y_test = train_test_split(data_x, data_y, test_size=0.33) # Shuffle Matches
         train_iter = DatasetIterator((x_train, y_train), batchsize) # für alle Matches (yield)
         model.train()  # turn on training mode
         for match, goldlabel in tqdm(train_iter):
             opt.zero_grad()
             predictions = model(match)
+            #list_train_preds.append(predictions)
+            #list_train_goldlabel.append(goldlabel)
             loss = loss_func(predictions, goldlabel)
             loss.backward()
             opt.step()
-
+        #train_accuracy = calc_acc(list_train_preds, list_train_goldlabel)
+        #print("Train accuracy = ", train_accuracy)
         model.eval()  # turn on evaluation mode
         print("\n--- EVALUIERUNG ---")
         test_iter = DatasetIterator((x_test,y_test),batchsize)
-        list_preds, list_goldlabel = [],[]
 
+        list_preds, list_goldlabel = [],[]
         for match, goldlabel in tqdm(test_iter):
             # matches = matches.to(device)
             # goldlabels = goldlabels.to(device)
@@ -114,14 +118,16 @@ def train(model, data_x, data_y, epochs, batchsize, learning_rate, model_filepat
             list_preds.append(converter(predictions))
             list_goldlabel.append(goldlabel)
             i += 1
-            if i % 2000 == 1999:    # print every 200 matches
+            if i % 2000 == 1999:    # print every 2000 matches
             # TODO: Bestes Model abspeichern
                 accuracy = calc_acc(list_preds, list_goldlabel)
+                list_preds, list_goldlabel = [],[]
                 print('[%d, %5d] loss: %.3f acc: %.3f' %
                       (epoch + 1, i + 1, running_loss / 2000, accuracy))
                 running_loss = 0.0
                 if accuracy > old_accuracy:
                     save_model(model, model_filepath)
+                    old_accuracy = accuracy
 
 
         print("\nEpoche fertig {}/{},".format(epoch, epochs))
@@ -131,6 +137,7 @@ def save_model(model, model_filepath='model.pkl'):
     """
     Speichert das model + parameter
     """
+    print("===== Model wird gespeichert ======\n")
     torch.save(model.state_dict(), model_filepath)
 
 
@@ -143,10 +150,12 @@ class Model(nn.Module):
         kernel_size (python:int or tuple) – Size of the convolving kernel
         """
         self.Convolution = nn.Conv1d(in_channels=1,out_channels=1,kernel_size=(5,1)) # Filter muss 1x10 sein
-        self.Dense64 = nn.Linear(4, 64) # ((Batch_size) x 2x NUMB_FEAT)
+        self.Dense64 = nn.Linear(4, 64) # (2x NUMB_FEAT)
         self.Dense16 = nn.Linear(64,16)
         self.Dense1  = nn.Linear(16,1)
-        #self.Sigmoid = nn.Sigmoid()
+        self.Sigmoid = nn.Sigmoid()
+        self.Dropout = nn.Dropout(p=0.2) 
+
 
     def forward(self, matches):
         team1, team2 = matches
@@ -157,25 +166,33 @@ class Model(nn.Module):
         conv_out2 = self.Convolution(team2).view(1,4)
         # concat the matrices:
         team_feature = torch.cat((conv_out1, conv_out2),0)
-        x64 = torch.tanh(self.Dense64(team_feature))
-        x16 = torch.tanh(self.Dense16(x64))
-        prediction = torch.tanh(self.Dense1(x16)).view(2)
-        #prediction = nn.Sigmoid()(self.Dense1(x16)) #only one of the two
-        #prediction = self.Sigmoid(x)
-        #print(prediction.shape)
+        drop_feat = self.Dropout(team_feature)
+
+        x64 = torch.tanh(self.Dense64(drop_feat))
+        drop = self.Dropout(x64)
+
+        x16 = torch.tanh(self.Dense16(drop))
+        drop = self.Dropout(x16)
+
+        #x = torch.tanh(self.Dense1(x16)).view(2)
+        #prediction = self.Sigmoid(self.Dense1(x16).view(2))
+        prediction = torch.tanh(self.Dense1(x16).view(2))
         #print(prediction)
-        return prediction
+        #prediction = self.Sigmoid(x)
+        #prediction = nn.Sigmoid()(self.Dense1(x16)) #only one of the two
+        #return torch.tensor(max(prediction))
+        return prediction # (P(Home-Won), P(Away-Won))
 
 if __name__ == "__main__" :
 # Values can be changed, to (maybe) improve perfermance a bit
-    learning_rate = 0.0001
+    learning_rate = 0.001
     epochs = 10
-    batchsize = 200
+    batchsize = 200 # not implemented
 
     model_filepath = "./data/model.pkl"
     print("===== Daten werden gelesen======\n")
     data_x, data_y = import_csv("./data/past_matches.csv")
     print("===== Daten eingelesen ======")
-    print(data_x.shape)
+    # Start training
     ezBetticus = Model()
     train(ezBetticus, data_x, data_y, epochs, batchsize, learning_rate,  model_filepath) # train and (will) save the best model EUWEST

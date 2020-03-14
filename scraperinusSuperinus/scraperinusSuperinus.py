@@ -1,6 +1,11 @@
 """
-This program scrapes all the HLTV data we could EVER need
+This program scrapes the best HLTV data EUWEST
+
+Functions:
+- scrape_past_matches (saves all matches starting 2017-01-01 in past_matches.csv)
+- scrape_upcoming_matches (saves all upcoming matches in upcoming_matches.csv)
 """
+
 
 """
 ToDo
@@ -25,7 +30,7 @@ def parse_page(url):
     soup = BeautifulSoup(c, "lxml")
     return soup
 
-def import_upcoming_matches(matches):
+def scrape_upcoming_matches(matches):
     """
     This function parses the upcoming matches from https://www.hltv.org/betting/money ,
     parses the match pages, parses the player pages, and returns an array of arrays
@@ -57,7 +62,7 @@ def import_upcoming_matches(matches):
     if matches == -1:
         matches = len(team_list) # scrape all matches
 
-    for i in range (0, matches*2, 2): # for each match
+    for i in range (0, matches * 2, 2): # for each match
         team1 = team_list[i].split(",")[0]
         team2 = team_list[i + 1].split(",")[0]
         match_url = team_list[i].split(",")[1]
@@ -110,9 +115,9 @@ def import_upcoming_matches(matches):
             if DEBUG == 1:
                 print("Parsed player page " + player_profile + "\nRating: " + ranks_list + "\nRating vs Top 10: " + opponent_rating + "\nMaps played: " + maps_played_list + "\n")
 
-        if i < matches:
+        if i < matches and (i % 2) != 0:
             if DEBUG == 1:
-                print("Sleeping for 10 seconds to prevent IP ban")
+                print("Match processed. Sleeping for 10 seconds to prevent IP ban")
             time.sleep(10)
 
         #all_matches.append(date, event, match_url, team1, team2, ranks_list[:5], weighted_ranks_list[:5], top10_list[:5], maps_played_list[:5], ranks_list[-5:], weighted_ranks_list[-5:], top10_list[-5:], maps_played_list[-5:])
@@ -120,5 +125,15 @@ def import_upcoming_matches(matches):
 
 
 if __name__ == "__main__" :
-
-    print(import_upcoming_matches(3))
+    print("\n=== hltv-scrape 1.0 by Hartmund Wendlandt ===\n")
+    print("Please select task:\n[1] Scrape upcoming matches\n[2] Scrape past matches")
+    task = int(input())
+    
+    if task == 1:
+        # read csv
+        # delete old entries
+        # get starting date for oldest upcoming match
+        print(scrape_upcoming_matches(5))
+        
+    if task == 2:
+        print("Coming soon to your city.")

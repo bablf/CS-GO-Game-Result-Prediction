@@ -151,7 +151,7 @@ if __name__ == "__main__":
     pp = pprint.PrettyPrinter()
     print("\n=== scraperinusTotalus 1.0 by Hartmund Wendlandt ===\n")
     print("Please select task:\n[1] Scrape upcoming matches\n[2] Scrape past matches\n")
-    task = 1 #int(input())
+    task = 2 #int(input())
     
     if task == 1:
         # read csv

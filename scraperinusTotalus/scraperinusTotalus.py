@@ -162,6 +162,7 @@ def parsePastMatches(startDate, endDate):
         match_count = 0
         
     offset = int(match_count / 50)
+    matches_left = (50 - (match_count - (offset * 50))) # they call me god...
        
     soup = parsePage("https://www.hltv.org/stats/matches?startDate=" + startDate + "&endDate=" + endDate + "&offset=" + str(offset * 50))
     match_urls_soup = soup.find_all(class_="date-col")
@@ -169,12 +170,11 @@ def parsePastMatches(startDate, endDate):
     csv_headers.append("winner")
     csv_content = []
 
-    matches_left = (50 - (match_count - (offset * 50))) # they call me god...
-    
-    if DEBUG == 1:
-        print("Starting parsing of match " + str(len(match_urls[matches_left:])) + "/50 on page " + str(offset + 1) + ".")
-  
-    for match in match_urls[matches_left:]:
+      
+    for match in match_urls[-matches_left:]:
+        if DEBUG == 1:
+            print("Parsing match " + match + ", " + str(match_urls.index(match)) + "/50 on page " + str(offset + 1) + ".")
+        
         soup = parsePage("https://www.hltv.org/" + match)
 
         unix_timestamp = re.findall("[0-9]{10}", str(soup.find_all(class_="small-text")))[0]
@@ -191,6 +191,11 @@ def parsePastMatches(startDate, endDate):
             player_stats = parsePlayerProfile(player, "2017-01-01", (datetime.utcfromtimestamp(int(unix_timestamp)) + relativedelta(days=-1)).strftime('%Y-%m-%d'))
             player_stats_3m = parsePlayerProfile(player, (datetime.utcfromtimestamp(int(unix_timestamp)) + relativedelta(months=-3)).strftime('%Y-%m-%d'), (datetime.utcfromtimestamp(int(unix_timestamp)) + relativedelta(days=-1)).strftime('%Y-%m-%d'))
             
+            if player_stats is None or player_stats_3m is None:
+                if DEBUG == 1:
+                    print("\nSkipping match " + match + " because " + player + " is lacking stats.")
+                break
+                            
             csv_row.extend(player_stats)
             csv_row.extend(player_stats_3m)
         
@@ -201,11 +206,13 @@ def parsePastMatches(startDate, endDate):
         else:
             csv_row.append("0")
             
-        csv_content.append(csv_row)
-
-        with open(sys.path[0] + '/past_matches.csv', 'a', newline='') as f:
-            df = pd.DataFrame(csv_content, columns=csv_headers)
-            df.to_csv(f, mode='a', index=False, header=not f.tell()) # write or append
+        if len(csv_row) == COLUMN_COUNT: # add match row only if we have all data
+            csv_content.append(csv_row)
+            with open(sys.path[0] + '/past_matches.csv', 'a', newline='') as f:
+                df = pd.DataFrame(csv_content, columns=csv_headers)
+                df.to_csv(f, mode='a', index=False, header=not f.tell()) # write or append
+                if DEBUG == 1:
+                    print("Appending match to past_matches.csv")
         
 
 if __name__ == "__main__":

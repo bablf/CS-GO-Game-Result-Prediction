@@ -18,7 +18,7 @@ import configparser
 
 
 DEBUG = 0 # 0-2
-PARSE_TIMEOUT = 0.065 # 0.061 # seconds
+PARSE_TIMEOUT = 0.08
 
 PAST_MATCHES_STARTDATE = "2018-06-01" # "2017-01-01"
 PAST_MATCHES_ENDDATE = "2020-03-14" # "2018-05-31"
@@ -271,7 +271,7 @@ def parsePastMatches(startDate, endDate, current_offset = -1):
             config.write(configfile)
             
     if DEBUG >= 0:
-        print("\n[" + datetime.now().strftime("%Y-%m-%d %H:%M:%S") + "] " + "=== Parsing of page " + (str(current_offset) + " complete. ==="))
+        print("\n[" + datetime.now().strftime("%Y-%m-%d %H:%M:%S") + "] " + "=== Parsing of page " + (str(current_offset + 1) + " complete. ==="))
 
     with open(sys.path[0] + "/config.ini", 'w') as configfile: # fix match count at the end of each batch
         match_count = current_offset * 50

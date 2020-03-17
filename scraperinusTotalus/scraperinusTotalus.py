@@ -197,12 +197,15 @@ def parsePastMatches(startDate, endDate, current_offset = -1):
     if DEBUG >= 1:
         print("\n[" + datetime.now().strftime("%Y-%m-%d %H:%M:%S") + "] " + "current_offset: " + str(current_offset) + " (url offset: " + str(current_offset * 50) + "), match_urls: " + str(match_urls))
 
-    file = open(sys.path[0] + "/past_matches_" + startDate + "_" + endDate + ".csv")
-    last_matches = tl.tail(file, 500) # read last 100 lines
-    file.close()
-    df = pd.read_csv(io.StringIO('\n'.join(last_matches)), header=None)
-    last_match_urls = df.iloc[-500:, 2].values
-    
+    try:
+        file = open(sys.path[0] + "/past_matches_" + startDate + "_" + endDate + ".csv")
+        last_matches = tl.tail(file, 500) # read last 100 lines
+        file.close()
+        df = pd.read_csv(io.StringIO('\n'.join(last_matches)), header=None)
+        last_match_urls = df.iloc[-500:, 2].values
+    except:
+        last_match_urls = []
+        
     for match in match_urls:
         
         if "https://www.hltv.org/" + match in last_match_urls or match in invalid_matches: # skip if already processed

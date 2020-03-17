@@ -276,7 +276,7 @@ def parsePastMatches(startDate, endDate, current_offset = -1):
 
     with open(sys.path[0] + "/config.ini", 'w') as configfile: # fix match count at the end of each batch
         match_count = current_offset * 50
-        config.set('General', 'TotalScraped', str(match_count))
+        config.set('parsePastMatches', 'TotalScraped', str(match_count))
         config.set('parsePastMatches', 'InvalidMatches', ', '.join(map(str, invalid_matches)))
         config.write(configfile)
 
@@ -326,5 +326,5 @@ if __name__ == "__main__":
             df.to_csv(f, mode='a', index=False, header=not f.tell()) # write or append
 
     if task == 2:
-        if parsePastMatches("2018-06-01", "2020-03-14"):
+        if parsePastMatches("2017-01-01", "2018-05-31"):
             print("\n[" + datetime.now().strftime("%Y-%m-%d %H:%M:%S") + "] " + "=== Completed parsing. Enjoy your past_matches.csv! ===\n\n")

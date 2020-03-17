@@ -276,7 +276,7 @@ def parsePastMatches(startDate, endDate, current_offset = -1):
 
     with open(sys.path[0] + "/config.ini", 'w') as configfile: # fix match count at the end of each batch
         match_count = current_offset * 50
-        config.set('General', 'TotalScraped', str(match_count))
+        config.set('parsePastMatches', 'TotalScraped', str(match_count))
         config.set('parsePastMatches', 'InvalidMatches', ', '.join(map(str, invalid_matches)))
         config.write(configfile)
 

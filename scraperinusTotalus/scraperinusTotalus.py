@@ -210,7 +210,7 @@ def parsePastMatches(startDate, endDate, current_offset = -1):
     """
 
     config = configparser.ConfigParser()
-    config.read(sys.path[0] + "/config.ini")
+    config.read(sys.path[0] + "/config_" + startDate + "_" + endDate + ".ini")
     match_count = int(config['parsePastMatches']["TotalScraped"])
     invalid_matches = [e.strip() for e in config.get('parsePastMatches', 'InvalidMatches').split(',')]
      
@@ -264,17 +264,11 @@ def parsePastMatches(startDate, endDate, current_offset = -1):
             player_stats_3m = parsePlayerProfile(player, (datetime.utcfromtimestamp(int(unix_timestamp)) + relativedelta(months=-3)).strftime('%Y-%m-%d'), (datetime.utcfromtimestamp(int(unix_timestamp)) + relativedelta(days=-1)).strftime('%Y-%m-%d'))
             
             if player_stats_3m is None:
-                if DEBUG >= 0:
-                    print("\n[" + datetime.now().strftime("%d.%m.%Y - %H:%M:%S") + "] " + "[-] Not enough 3-month player data for match " + team1 + " vs " + team2 + " on " + date + " at " + event + ". Total matches parsed: " + str(match_count))
-                invalid_matches.append(match)
                 break
             
             player_stats = parsePlayerProfile(player, "2017-01-01", (datetime.utcfromtimestamp(int(unix_timestamp)) + relativedelta(days=-1)).strftime('%Y-%m-%d'))
             
             if player_stats is None:
-                if DEBUG >= 0:
-                    print("\n[" + datetime.now().strftime("%d.%m.%Y - %H:%M:%S") + "] " + "[-] Not enough player data for match " + team1 + " vs " + team2 + " on " + date + " at " + event + ". Total matches parsed: " + str(match_count) + ".")
-                invalid_matches.append(match)
                 break
                    
             csv_row.extend(player_stats)
@@ -287,9 +281,11 @@ def parsePastMatches(startDate, endDate, current_offset = -1):
         else:
             csv_row.append("0")
             
-        if DEBUG >= 2:
-            print("\n[" + datetime.now().strftime("%d.%m.%Y - %H:%M:%S") + "] " + "csv_row (" + str(len(csv_row)) + " columns): " + str(csv_row))
-
+        if len(csv_row) != len(csv_headers):
+            if DEBUG >= 0:
+                print("\n[" + datetime.now().strftime("%d.%m.%Y - %H:%M:%S") + "] " + "[-] Skipping match because row size doesn't match: " + str(len(csv_row)) + "/" + str(len(csv_headers)) + " rows parsed. Total matches processed: " + str(match_count) + ".")
+            invalid_matches.append(match)
+                
         if len(csv_row) == len(csv_headers): # add match row only if we have all data
             csv_content.append(csv_row)
             with open(sys.path[0] + "/past_matches_" + startDate + "_" + endDate + ".csv", 'a', newline='') as f:
@@ -298,16 +294,16 @@ def parsePastMatches(startDate, endDate, current_offset = -1):
                 if DEBUG >= 0:
                     print("\n[" + datetime.now().strftime("%d.%m.%Y - %H:%M:%S") + "] " + "[+] Saved match. Total matches parsed: " + str(match_count) + ".")
         
-        with open(sys.path[0] + "/config.ini", 'w') as configfile:
+        with open(sys.path[0] + "/config_" + startDate + "_" + endDate + ".ini", 'w') as configfile:
             match_count += 1
             config.set('parsePastMatches', 'TotalScraped', str(match_count))
-            config.set('parsePastMatches', 'InvalidMatches', ', '.join(map(str, invalid_matches)))
+            config.set('parsePastMatches', 'InvalidMatches', ','.join(map(str, invalid_matches)))
             config.write(configfile)
             
     if DEBUG >= 0:
         print("\n[" + datetime.now().strftime("%d.%m.%Y - %H:%M:%S") + "] " + "=== Parsing of page " + (str(current_offset + 1) + " complete. ==="))
 
-    with open(sys.path[0] + "/config.ini", 'w') as configfile: # fix match count at the end of each batch
+    with open(sys.path[0] + "/config_" + startDate + "_" + endDate + ".ini", 'w') as configfile: # fix match count at the end of each batch
         match_count = current_offset * 50
         config.set('parsePastMatches', 'TotalScraped', str(match_count))
         config.set('parsePastMatches', 'InvalidMatches', ', '.join(map(str, invalid_matches)))
@@ -322,7 +318,7 @@ if __name__ == "__main__":
     print("\n=== scraperinusTotalus by Hartmund Wendlandt ===\n")
     print("Please select task:\n[1] Scrape upcoming matches\n[2] Scrape past matches\n")
     
-    task = 1 #int(input())
+    task = 2 #int(input())
     
     if task == 1:       
         if parseUpcomingMatches(int(input("How many matches would you like to parse? (-1 for all): "))):

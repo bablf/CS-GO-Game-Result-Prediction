@@ -18,7 +18,7 @@ import configparser
 
 
 DEBUG = 0 # 0-2
-PARSE_TIMEOUT = 0.08
+PARSE_TIMEOUT = 0.06 #0.08
 
 PAST_MATCHES_STARTDATE = "2018-06-01" # "2017-01-01"
 PAST_MATCHES_ENDDATE = "2020-03-14" # "2018-05-31"
@@ -44,7 +44,7 @@ def parsePage(url):
     
     soup = BeautifulSoup(requests.get(url).content, "lxml")
     
-    if "rate limited" in str(soup):
+    if "rate limited" or "banned your IP" in str(soup):
         sys.exit("\a\n\n[" + datetime.now().strftime("%Y-%m-%d %H:%M:%S") + "] === HLTV IP block, please restart the script. ===\n\n")
     return soup
 
@@ -108,13 +108,13 @@ def parsePlayerProfile(url, startDate, endDate):
         
         final_list = [rating, dpr, kast, impact, adr, kpr, kills, hs, deaths, apr, kd, dr, sbtr, stpr, gdmgr, maps, top5, top10, top20, top30, top50, kpd, rwk, kdd, kr0, kr1, kr2, kr3, kr4, kr5, tok, tod, okr, okra, twp, fkwon, riflek, sniperk, smgk, pistolk, grenadek, otherk]
     
+        if DEBUG >= 2:
+            print("\n[" + datetime.now().strftime("%d.%m.%Y - %H:%M:%S") + "] " + "Player " + url + " (" + startDate + " to " + endDate + "): " + str(final_list))
+        
+        return final_list
+
     except:
         return
-    
-    if DEBUG >= 2:
-        print("\n[" + datetime.now().strftime("%Y-%m-%d %H:%M:%S") + "] " + "Player " + url + " (" + startDate + " to " + endDate + "): " + str(final_list))
-        
-    return final_list
 
     
 def parseUpcomingMatches(matches):
@@ -136,7 +136,7 @@ def parseUpcomingMatches(matches):
         matches = int(len(match_soup))
 
     if DEBUG >= 0:
-        print("\n[" + datetime.now().strftime("%Y-%m-%d %H:%M:%S") + "] " + str(len(match_soup)) + " matches found on https://hltv.org/betting/money. Importing " + str(matches) + " matches due to parameters.\n")
+        print("\n[" + datetime.now().strftime("%d.%m.%Y - %H:%M:%S") + "] " + str(len(match_soup)) + " matches found on https://hltv.org/betting/money. Importing " + str(matches) + " matches due to parameters.\n")
 
     for match in match_soup:
         parsed_matches.append(["https://hltv.org" + match.find("a").get("href").replace("/betting/analytics", "/matches"), match.find_all(class_="team-name")[0].get_text(), match.find_all(class_="team-name")[1].get_text()])
@@ -148,7 +148,7 @@ def parseUpcomingMatches(matches):
 
         if int(time.time()) > int(unix_timestamp):
             if DEBUG >= 0:
-                print("\n[" + datetime.now().strftime("%Y-%m-%d %H:%M:%S") + "] " + "Skipping " + match + " because it's already live or closed.")
+                print("\n[" + datetime.now().strftime("%d.%m.%Y - %H:%M:%S") + "] " + "Skipping " + match + " because it's already live or closed.")
             continue
 
         date = datetime.utcfromtimestamp(int(unix_timestamp)).strftime('%Y-%m-%d')
@@ -195,7 +195,7 @@ def parsePastMatches(startDate, endDate, current_offset = -1):
         return True # all that was to be done has been done!
     
     if DEBUG >= 1:
-        print("\n[" + datetime.now().strftime("%Y-%m-%d %H:%M:%S") + "] " + "current_offset: " + str(current_offset) + " (url offset: " + str(current_offset * 50) + "), match_urls: " + str(match_urls))
+        print("\n[" + datetime.now().strftime("%d.%m.%Y - %H:%M:%S") + "] " + "current_offset: " + str(current_offset) + " (url offset: " + str(current_offset * 50) + "), match_urls: " + str(match_urls))
 
     try:
         file = open(sys.path[0] + "/past_matches_" + startDate + "_" + endDate + ".csv")
@@ -210,7 +210,7 @@ def parsePastMatches(startDate, endDate, current_offset = -1):
         
         if "https://www.hltv.org/" + match in last_match_urls or match in invalid_matches: # skip if already processed
             if DEBUG >= 0:
-                print("\n[" + datetime.now().strftime("%Y-%m-%d %H:%M:%S") + "] " + "Skipping match " + match + " because it is already processed.")
+                print("\n[" + datetime.now().strftime("%d.%m.%Y - %H:%M:%S") + "] " + "Skipping match " + match + " because it is already processed.")
             continue
 
         soup = parsePage("https://www.hltv.org/" + match)
@@ -227,14 +227,14 @@ def parsePastMatches(startDate, endDate, current_offset = -1):
         players = re.findall("(\/[0-9]+\/\w+)\"", str(soup.find_all(class_="st-player")))
         
         if DEBUG >= 0:
-            print("\n[" + datetime.now().strftime("%Y-%m-%d %H:%M:%S") + "] " + "[" + str(match_urls.index(match) + 1) + "/50 on page " + str(current_offset + 1) + "] Parsing match " + team1 + " vs " + team2 + " on " + date + " at " + event + ".")
+            print("\n[" + datetime.now().strftime("%d.%m.%Y - %H:%M:%S") + "] " + "[" + str(match_urls.index(match) + 1) + "/50 on page " + str(current_offset + 1) + "] Parsing match " + team1 + " vs " + team2 + " on " + date + " at " + event + ".")
         
         for player in players:
             player_stats_3m = parsePlayerProfile(player, (datetime.utcfromtimestamp(int(unix_timestamp)) + relativedelta(months=-3)).strftime('%Y-%m-%d'), (datetime.utcfromtimestamp(int(unix_timestamp)) + relativedelta(days=-1)).strftime('%Y-%m-%d'))
             
             if player_stats_3m is None:
                 if DEBUG >= 0:
-                    print("\n[" + datetime.now().strftime("%Y-%m-%d %H:%M:%S") + "] " + "[-] Not enough 3-month player data for match " + team1 + " vs " + team2 + " on " + date + " at " + event + ". Total matches parsed: " + str(match_count))
+                    print("\n[" + datetime.now().strftime("%d.%m.%Y - %H:%M:%S") + "] " + "[-] Not enough 3-month player data for match " + team1 + " vs " + team2 + " on " + date + " at " + event + ". Total matches parsed: " + str(match_count))
                 invalid_matches.append(match)
                 break
             
@@ -242,7 +242,7 @@ def parsePastMatches(startDate, endDate, current_offset = -1):
             
             if player_stats is None:
                 if DEBUG >= 0:
-                    print("\n[" + datetime.now().strftime("%Y-%m-%d %H:%M:%S") + "] " + "[-] Not enough player data for match " + team1 + " vs " + team2 + " on " + date + " at " + event + ". Total matches parsed: " + str(match_count) + ".")
+                    print("\n[" + datetime.now().strftime("%d.%m.%Y - %H:%M:%S") + "] " + "[-] Not enough player data for match " + team1 + " vs " + team2 + " on " + date + " at " + event + ". Total matches parsed: " + str(match_count) + ".")
                 invalid_matches.append(match)
                 break
                    
@@ -257,7 +257,7 @@ def parsePastMatches(startDate, endDate, current_offset = -1):
             csv_row.append("0")
             
         if DEBUG >= 2:
-            print("\n[" + datetime.now().strftime("%Y-%m-%d %H:%M:%S") + "] " + "csv_row (" + str(len(csv_row)) + " columns): " + str(csv_row))
+            print("\n[" + datetime.now().strftime("%d.%m.%Y - %H:%M:%S") + "] " + "csv_row (" + str(len(csv_row)) + " columns): " + str(csv_row))
 
         if len(csv_row) == len(csv_headers): # add match row only if we have all data
             csv_content.append(csv_row)
@@ -265,7 +265,7 @@ def parsePastMatches(startDate, endDate, current_offset = -1):
                 df = pd.DataFrame(csv_content, columns=csv_headers)
                 df.to_csv(f, mode='a', index=False, header=not f.tell()) # write or append
                 if DEBUG >= 0:
-                    print("\n[" + datetime.now().strftime("%Y-%m-%d %H:%M:%S") + "] " + "[+] Saved match. Total matches parsed: " + str(match_count) + ".")
+                    print("\n[" + datetime.now().strftime("%d.%m.%Y - %H:%M:%S") + "] " + "[+] Saved match. Total matches parsed: " + str(match_count) + ".")
         
         with open(sys.path[0] + "/config.ini", 'w') as configfile:
             match_count += 1
@@ -274,7 +274,7 @@ def parsePastMatches(startDate, endDate, current_offset = -1):
             config.write(configfile)
             
     if DEBUG >= 0:
-        print("\n[" + datetime.now().strftime("%Y-%m-%d %H:%M:%S") + "] " + "=== Parsing of page " + (str(current_offset + 1) + " complete. ==="))
+        print("\n[" + datetime.now().strftime("%d.%m.%Y - %H:%M:%S") + "] " + "=== Parsing of page " + (str(current_offset + 1) + " complete. ==="))
 
     with open(sys.path[0] + "/config.ini", 'w') as configfile: # fix match count at the end of each batch
         match_count = current_offset * 50
@@ -307,14 +307,14 @@ if __name__ == "__main__":
                 
                 if player_stats_3m is None:
                     if DEBUG >= 1:
-                        print("\n[" + datetime.now().strftime("%Y-%m-%d %H:%M:%S") + "] " + "Skipping match because " + player + " is lacking 3-month stats.")
+                        print("\n[" + datetime.now().strftime("%d.%m.%Y - %H:%M:%S") + "] " + "Skipping match because " + player + " is lacking 3-month stats.")
                     break
                 
                 player_stats = parsePlayerProfile(player, "2017-01-01", datetime.now().strftime('%Y-%m-%d'))
                 
                 if player_stats is None:
                     if DEBUG >= 1:
-                        print("\n[" + datetime.now().strftime("%Y-%m-%d %H:%M:%S") + "] " + "Skipping match because " + player + " is lacking stats.")
+                        print("\n[" + datetime.now().strftime("%d.%m.%Y - %H:%M:%S") + "] " + "Skipping match because " + player + " is lacking stats.")
                     break
                              
                 csv_row.extend(player_stats)
@@ -329,4 +329,4 @@ if __name__ == "__main__":
 
     if task == 2:
         if parsePastMatches(PAST_MATCHES_STARTDATE, PAST_MATCHES_ENDDATE):
-            print("\n[" + datetime.now().strftime("%Y-%m-%d %H:%M:%S") + "] " + "=== Completed parsing. Enjoy your past_matches.csv! ===\n\n")
+            print("\n[" + datetime.now().strftime("%d.%m.%Y - %H:%M:%S") + "] " + "=== Completed parsing. Enjoy your past_matches.csv! ===\n\n")

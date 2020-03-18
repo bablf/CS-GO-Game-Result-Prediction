@@ -44,7 +44,7 @@ def parsePage(url):
     
     soup = BeautifulSoup(requests.get(url).content, "lxml")
     
-    if "rate limited" or "banned your IP" in str(soup):
+    if "rate limited" in str(soup):
         sys.exit("\a\n\n[" + datetime.now().strftime("%Y-%m-%d %H:%M:%S") + "] === HLTV IP block, please restart the script. ===\n\n")
     return soup
 

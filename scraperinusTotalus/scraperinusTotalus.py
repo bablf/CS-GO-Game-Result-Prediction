@@ -18,7 +18,7 @@ import configparser
 
 
 DEBUG = 0 # 0-2
-PARSE_TIMEOUT = 0.07 #0.08
+PARSE_TIMEOUT = 0.06 #0.08
 
 PAST_MATCHES_STARTDATE = "2018-06-01" # "2017-01-01"
 PAST_MATCHES_ENDDATE = "2020-03-14" # "2018-05-31"
@@ -45,7 +45,10 @@ def parsePage(url):
     soup = BeautifulSoup(requests.get(url).content, "lxml")
     
     if "rate limited" in str(soup):
-        sys.exit("\a\n\n[" + datetime.now().strftime("%Y-%m-%d %H:%M:%S") + "] === HLTV IP block, please restart the script. ===\n\n")
+        sys.exit("\n\n[" + datetime.now().strftime("%Y-%m-%d %H:%M:%S") + "] === Temporary HLTV IP ban, please restart the script. ===\n\n")
+        
+    if "has banned your IP address" in str(soup):
+        sys.exit("\n\n[" + datetime.now().strftime("%Y-%m-%d %H:%M:%S") + "] === Permanent HLTV IP ban, please change your IP address and restart the script. ===\n\n")
     return soup
 
 

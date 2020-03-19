@@ -18,7 +18,7 @@ import configparser
 
 
 DEBUG = 0 # 0-2
-PARSE_TIMEOUT = 0.06 #0.08
+PARSE_TIMEOUT = 0.07 #0.08
 
 PAST_MATCHES_STARTDATE = "2018-06-01" # "2017-01-01"
 PAST_MATCHES_ENDDATE = "2020-03-14" # "2018-05-31"
@@ -283,7 +283,7 @@ def parsePastMatches(startDate, endDate, current_offset = -1):
             
         if len(csv_row) != len(csv_headers):
             if DEBUG >= 0:
-                print("\n[" + datetime.now().strftime("%d.%m.%Y - %H:%M:%S") + "] " + "[-] Skipping match due to ncorrect row size: " + str(len(csv_row)) + "/" + str(len(csv_headers)) + ". Total matches processed: " + str(match_count) + ".")
+                print("\n[" + datetime.now().strftime("%d.%m.%Y - %H:%M:%S") + "] " + "[-] Skipping match due to incorrect row size: " + str(len(csv_row)) + "/" + str(len(csv_headers)) + ". Total matches processed: " + str(match_count) + ".")
             invalid_matches.append(match)
                 
         if len(csv_row) == len(csv_headers): # add match row only if we have all data

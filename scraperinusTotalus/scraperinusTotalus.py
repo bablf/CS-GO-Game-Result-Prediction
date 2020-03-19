@@ -283,7 +283,7 @@ def parsePastMatches(startDate, endDate, current_offset = -1):
             
         if len(csv_row) != len(csv_headers):
             if DEBUG >= 0:
-                print("\n[" + datetime.now().strftime("%d.%m.%Y - %H:%M:%S") + "] " + "[-] Skipping match because row size doesn't match: " + str(len(csv_row)) + "/" + str(len(csv_headers)) + " rows parsed. Total matches processed: " + str(match_count) + ".")
+                print("\n[" + datetime.now().strftime("%d.%m.%Y - %H:%M:%S") + "] " + "[-] Skipping match due to ncorrect row size: " + str(len(csv_row)) + "/" + str(len(csv_headers)) + ". Total matches processed: " + str(match_count) + ".")
             invalid_matches.append(match)
                 
         if len(csv_row) == len(csv_headers): # add match row only if we have all data

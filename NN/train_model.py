@@ -24,7 +24,8 @@ def scale_data(csvfilename):
     with open(csvfilename, "r", encoding="utf-8", errors="ignore") as scraped:
         NUMB_ROWS, NUMB_FEAT = 0, 0
         first = True
-        reader = csv.reader(scraped, delimiter=';')
+        teams = []
+        reader = csv.reader(scraped, delimiter=',')
         first_row = next(reader)  # skip to second line, because first doent have values
         # for debugging
         # print(np.array(first_row[5:-1]).reshape(2, 5, 4))
@@ -32,6 +33,8 @@ def scale_data(csvfilename):
         data_x,data_y = [],[]
         for row in reader:
             if row:  # avoid blank lines
+                teams.append(row[3])
+                teams.append(row[4])
                 y = float(row[-1]) # take Goldlabel
                 winner = [0.0, 1.0] if y == 2.0 else [1.0, 0.0]
                 x = [0.0 if elem == "" else float(elem) for elem in row[5:-1]]
@@ -43,39 +46,8 @@ def scale_data(csvfilename):
                     NUMB_FEAT = len(x)
 
         data_x = scale(np.array(data_x)).reshape(NUMB_ROWS, 2, 5, int(NUMB_FEAT/10))
-        return data_x, data_y
 
-
-def import_csv(csvfilename): # https://stackoverflow.com/a/53483446
-    """
-    This funciton takes a csv file and returns a dataset looking like this
-    [(match_matrix, winner),  ... ]
-    """
-    data_x, data_y = [],[] # Feature
-    with open(csvfilename, "r", encoding="utf-8", errors="ignore") as scraped:
-        reader = csv.reader(scraped, delimiter=';')
-        first_row = next(reader)  # skip to second line, because first doent have values
-
-        for row in reader:
-            team1, team2 = [],[]
-            if row:  # avoid blank lines
-                y = float(row[-1]) # take Goldlabel
-
-                winner = [0.0, 1.0] if y == 2.0 else [1.0, 0.0]
-                x = [0.0 if elem == "" else float(elem) for elem in row[5:-1]] # remove "-" und set to float
-                t1 = x[:20]
-                t2 = x[20:]
-                for i in range(0,5):    # group all player features
-                    player = t1[i::5]
-                    team1.append(player)
-                for i in range(0,5):    # group all player features
-                    player = t2[i::5]
-                    team2.append(player)
-
-            data_x.append(np.array([team1,team2]))
-            data_y.append(np.array(winner))
-
-        return np.array(data_x), np.array(data_y)
+        return data_x, data_y, teams
 
 
 def converter(preds):
@@ -92,7 +64,6 @@ def calc_acc(preds, goldlabel):
             right +=1
     return right/len(preds)
 
-                                                        # TODO: dataparam?
 def train(model, data_x, data_y, epochs, batchsize, learning_rate, model_filepath):
 
     opt = optim.SGD(model.parameters(), lr=learning_rate, weight_decay=0.001) # Optimizer = Stocastic Gradient Descent
@@ -155,9 +126,9 @@ if __name__ == "__main__" :
     #scale_data("../scraperinusTotalicus/past_matches.csv")
 
     print("===== Daten werden gelesen======\n")
-    data_x, data_y = import_csv("../scraperinusTotalicus/past_matches.csv")
+    data_x, data_y, teams = scale_data("../scraperinusTotalus/past_matches_2018-06-01_2020-03-14.csv")
     print("===== Daten eingelesen =========")
-
+    print(data_x.shape)
     # Start training
     ezBetticus = Model()
     train(ezBetticus, data_x, data_y, epochs, batchsize, learning_rate,  model_filepath) # train and (will) save the best model EUWEST

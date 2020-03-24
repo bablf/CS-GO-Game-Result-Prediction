@@ -204,15 +204,15 @@ def parsePastMatches(startDate, endDate, current_offset = -1):
         
     """
 
-    if current_offset == -1:
-        csv_headers.append("winner")
-        current_offset = int(match_count / 50)
-
     config = configparser.ConfigParser()
     config.read(sys.path[0] + "/config_" + startDate + "_" + endDate + ".ini")
     match_count = int(config['parsePastMatches']["TotalScraped"])
     validation = int(config['parsePastMatches']["Validation"])
     invalid_matches = [e.strip() for e in config.get('parsePastMatches', 'InvalidMatches').split(',')]
+   
+    if current_offset == -1:
+        csv_headers.append("winner")
+        current_offset = int(match_count / 50)
         
     soup = parsePage("https://www.hltv.org/stats/matches?startDate=" + startDate + "&endDate=" + endDate + "&offset=" + str(current_offset * 50))
     match_urls_soup = soup.find_all(class_="date-col")
@@ -274,7 +274,7 @@ def parsePastMatches(startDate, endDate, current_offset = -1):
                     print("\n[" + datetime.now().strftime("%d.%m.%Y - %H:%M:%S") + "] " + "[-] Incorrect row size: " + str(len(csv_row)) + "/" + str(len(csv_headers)) + ". Total matches processed: " + str(match_count) + ".")
                 invalid_matches.append(match)
                     
-            if len(csv_row) == len(csv_headers): # add match row only if we have all data
+            else: # add match row only if we have all data
                 csv_content.append(csv_row)
                 with open(sys.path[0] + "/past_matches_" + startDate + "_" + endDate + ".csv", 'a', newline='') as f:
                     df = pd.DataFrame(csv_content, columns=csv_headers)

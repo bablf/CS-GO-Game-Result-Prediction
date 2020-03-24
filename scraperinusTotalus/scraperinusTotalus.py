@@ -7,7 +7,6 @@ import re
 from time import sleep, time
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
-import tailer as tl # to efficiently read last lines of our huge csv files
 import io # to efficiently read last lines of our huge csv files
 
 from bs4 import BeautifulSoup
@@ -191,8 +190,8 @@ def parseUpcomingMatches(matches):
             csv_content.append(csv_row)
 
     with open(sys.path[0] + '/upcoming_matches.csv', 'a', newline='') as f:
-        df = pd.DataFrame(csv_content, columns=csv_headers)
-        df.to_csv(f, mode='a', index=False, header=not f.tell()) # write or append
+        df = pd.DataFrame(csv_content, columns = csv_headers)
+        df.to_csv(f, mode = 'a', index = False, header = not f.tell()) # write or append
         
     return True
 
@@ -205,37 +204,30 @@ def parsePastMatches(startDate, endDate, current_offset = -1):
         
     """
 
+    if current_offset == -1:
+        csv_headers.append("winner")
+        current_offset = int(match_count / 50)
+
     config = configparser.ConfigParser()
     config.read(sys.path[0] + "/config_" + startDate + "_" + endDate + ".ini")
     match_count = int(config['parsePastMatches']["TotalScraped"])
     validation = int(config['parsePastMatches']["Validation"])
-
     invalid_matches = [e.strip() for e in config.get('parsePastMatches', 'InvalidMatches').split(',')]
-     
-    if current_offset == -1:
-        csv_headers.append("winner")
-        current_offset = int(match_count / 50)
         
     soup = parsePage("https://www.hltv.org/stats/matches?startDate=" + startDate + "&endDate=" + endDate + "&offset=" + str(current_offset * 50))
     match_urls_soup = soup.find_all(class_="date-col")
-    match_urls = re.findall("(stats\/matches\/mapstatsid\/[0-9]+\/.+)\?", str(match_urls_soup))
+    soup_match_urls = re.findall("(stats\/matches\/mapstatsid\/[0-9]+\/.+)\?", str(match_urls_soup))
     
     if DEBUG >= 1:
-        print("\n[" + datetime.now().strftime("%d.%m.%Y - %H:%M:%S") + "] " + "current_offset: " + str(current_offset) + " (url offset: " + str(current_offset * 50) + "), match_urls: " + str(match_urls))
+        print("\n[" + datetime.now().strftime("%d.%m.%Y - %H:%M:%S") + "] " + "current_offset: " + str(current_offset) + " (url offset: " + str(current_offset * 50) + "), match_urls: " + str(soup_match_urls))
     
-    if match_urls: # matches left to parse
-        try:
-            file = open(sys.path[0] + "/past_matches_" + startDate + "_" + endDate + ".csv")
-            last_matches = tl.tail(file, 500) # read x lines
-            file.close()
-            df = pd.read_csv(io.StringIO('\n'.join(last_matches)), header=None)
-            last_match_urls = df.iloc[-500:, 2].values
+    if soup_match_urls: # matches left to parse
+
+        df = pd.read_csv(sys.path[0] + "/past_matches_" + startDate + "_" + endDate + ".csv", encoding = 'latin-1')
+        valid_matches = df.iloc[:, 2].values
             
-        except:
-            last_match_urls = []
-            
-        for match in match_urls:  
-            if "https://www.hltv.org/" + match in last_match_urls or match in invalid_matches: # skip if already processed
+        for match in soup_match_urls:  
+            if "https://www.hltv.org/" + match in valid_matches or match in invalid_matches: # skip if already processed
                 if DEBUG >= 0:
                     print("\n[" + datetime.now().strftime("%d.%m.%Y - %H:%M:%S") + "] " + "Skipping match " + match + " because it is already processed.")
                 continue
@@ -254,7 +246,7 @@ def parsePastMatches(startDate, endDate, current_offset = -1):
             players = re.findall("(\/[0-9]+\/\w+)\"", str(soup.find_all(class_="st-player")))
             
             if DEBUG >= 0:
-                print("\n[" + datetime.now().strftime("%d.%m.%Y - %H:%M:%S") + "] " + "[" + str(match_urls.index(match) + 1) + "/50 on page " + str(current_offset + 1) + "] Parsing match " + team1 + " vs " + team2 + " on " + date + " at " + event + ".")
+                print("\n[" + datetime.now().strftime("%d.%m.%Y - %H:%M:%S") + "] " + "[" + str(soup_match_urls.index(match) + 1) + "/50 on page " + str(current_offset + 1) + "] Parsing match " + team1 + " vs " + team2 + " on " + date + " at " + event + ".")
             
             for player in players:
                 player_stats_3m = parsePlayerProfile(player, (datetime.utcfromtimestamp(int(unix_timestamp)) + relativedelta(months=-3)).strftime('%Y-%m-%d'), (datetime.utcfromtimestamp(int(unix_timestamp)) + relativedelta(days=-1)).strftime('%Y-%m-%d'))
@@ -315,11 +307,11 @@ def parsePastMatches(startDate, endDate, current_offset = -1):
             print("\n[" + datetime.now().strftime("%d.%m.%Y - %H:%M:%S") + "] " + "=== All matches parsed, validating ===")
  
         with open(sys.path[0] + "/config_" + startDate + "_" + endDate + ".ini", 'w') as configfile: # fix match count at the end of each batch
-            match_count = current_offset * 50
             config.set('parsePastMatches', 'TotalScraped', "0")
             config.set('parsePastMatches', 'Validation', "1")
             config.write(configfile)            
         
+        match_count = 0
         current_offset = 0
 
     return parsePastMatches(PAST_MATCHES_STARTDATE, PAST_MATCHES_ENDDATE, current_offset)

@@ -26,3 +26,8 @@ Ideen:
 - accuracy von 63% nach einer
 - 64% nach fünf epoche.
 - Loss immernoch unverändert.
+
+#### Model 3:
+- weight_decay weggelassen weil stackoverflow meinte dass es dafür vverantwortlich ist,
+dass loss nicht updated. Hört sich irrsinnig an, aber probiere es: #
+- kein unterschied. loss immernoch gleich.

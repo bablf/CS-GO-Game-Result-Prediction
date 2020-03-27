@@ -14,7 +14,7 @@ import pandas as pd
 import configparser
 
 DEBUG = 0 # 0-2
-PARSE_TIMEOUT = 0.06
+PARSE_TIMEOUT = 0.07
 
 PAST_MATCHES_STARTDATE = "2017-01-01"
 PAST_MATCHES_ENDDATE = "2018-05-31"

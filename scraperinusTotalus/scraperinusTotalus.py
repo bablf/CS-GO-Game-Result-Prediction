@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 """
 Your source for the best HLTV data EUWEST
 """
@@ -120,7 +122,7 @@ def parseUpcomingMatches(matches):
     
     soup = parsePage("https://www.hltv.org/betting/money")
     match_soup = soup.find_all(class_="bet-container")
-    parsed_matches = [] # "url - team1 - team2" for all matches on the page
+    parsed_matches = [] # "url - team1 - team2 - [odds]" for all matches on the page
     match_list = [] # master list
     
     if matches == -1:
@@ -130,7 +132,13 @@ def parseUpcomingMatches(matches):
         print("\n[" + datetime.now().strftime("%d.%m.%Y - %H:%M:%S") + "] " + str(len(match_soup)) + " matches found on https://hltv.org/betting/money. Importing " + str(matches) + " matches due to parameters.\n")
 
     for match in match_soup:
-        parsed_matches.append(["https://hltv.org" + match.find("a").get("href").replace("/betting/analytics", "/matches"), match.find_all(class_="team-name")[0].get_text(), match.find_all(class_="team-name")[1].get_text()])
+        odds = []        
+        bestOdds_soup = match.find_all(class_="bestOdds")
+        for odd in bestOdds_soup:
+            odds.append(str(odd.get_text()))
+        odds = list(dict.fromkeys(odds)) # remove all duplicates
+        
+        parsed_matches.append(["https://hltv.org" + match.find("a").get("href").replace("/betting/analytics", "/matches"), match.find_all(class_="team-name")[0].get_text(), match.find_all(class_="team-name")[1].get_text(), odds])
 
     for match in parsed_matches[0:matches]:
         soup = parsePage(match[0]) # parse match page for player urls
@@ -153,13 +161,16 @@ def parseUpcomingMatches(matches):
             if len(player_link_list) < 10:
                 player_link_list.append(player_link.replace("/stats/players/", ""))
 
-        match_list.append([date, event, match[0], match[1], match[2], player_link_list])
-        
-    csv_content = []
+        match_list.append([date, event, match[0], match[1], match[2], player_link_list, match[3]])
     
+    csv_headers.append("team1_odds")
+    csv_headers.append("team2_odds")        
+    filedate = datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
+
     # Scrape final data and write to CSV
         
     for match in match_list:
+        csv_content = []
         csv_row = [match[0], match[1], match[2], match[3], match[4]] # date, event, url, team1, team2
         player_stats = []
         player_stats_3m = []
@@ -182,13 +193,17 @@ def parseUpcomingMatches(matches):
             csv_row.extend(player_stats)
             csv_row.extend(player_stats_3m)
         
+        csv_row.extend([match[6][0], match[6][1]]) # team1_odds, team2_odds
+        
         if len(csv_row) == len(csv_headers): # add match row only if we have all data
             csv_content.append(csv_row)
 
-    with open(sys.path[0] + '/upcoming_matches.csv', 'a', newline='') as f:
-        df = pd.DataFrame(csv_content, columns = csv_headers)
-        df.to_csv(f, mode = 'a', index = False, header = not f.tell()) # write or append
-        
+            with open(sys.path[0] + '/upcoming_matches_' + filedate + '.csv', 'a', newline='') as f:
+                df = pd.DataFrame(csv_content, columns = csv_headers)
+                df.to_csv(f, mode = 'a', index = False, header = not f.tell()) # write or append
+                if DEBUG >= 0:
+                    print("\n[" + datetime.now().strftime("%d.%m.%Y - %H:%M:%S") + "] " + "[+] [" + str((match_list.index(match) + 1)) + "] Saved match.")
+    
     return True
 
 
@@ -316,7 +331,7 @@ if __name__ == "__main__":
     print("\n=== scraperinusTotalus by Hartmund Wendlandt ===\n")
     #print("Please select task:\n[1] Scrape upcoming matches\n[2] Scrape past matches\n")
     
-    task = 2 #int(input())
+    task = int(input())
     
     if task == 1:       
         if parseUpcomingMatches(int(input("How many matches would you like to parse? (-1 for all): "))):

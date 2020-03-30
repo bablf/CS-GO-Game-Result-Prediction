@@ -329,7 +329,7 @@ def parsePastMatches(startDate, endDate, current_offset = -1):
 
 if __name__ == "__main__":
     print("\n=== scraperinusTotalus by Hartmund Wendlandt ===\n")
-    #print("Please select task:\n[1] Scrape upcoming matches\n[2] Scrape past matches\n")
+    print("Please select task:\n[1] Scrape upcoming matches\n[2] Scrape past matches\n")
     
     task = int(input())
     

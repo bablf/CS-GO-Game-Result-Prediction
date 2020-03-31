@@ -126,7 +126,7 @@ if __name__ == "__main__" :
     #scale_data("../scraperinusTotalicus/past_matches.csv")
 
     print("===== Daten werden gelesen======\n")
-    data_x, data_y, teams = scale_data(r"C:\Users\user\Desktop\ezBetticus\scraperinusTotalus\past_matches_2017-04-01_2020-03-30.csv")
+    data_x, data_y, teams = scale_data("../scraperinusTotalus/past_matches_2017-04-01_2020-03-30.csv")
     print("===== Daten eingelesen =========")
     print(data_x.shape)
     # Start training

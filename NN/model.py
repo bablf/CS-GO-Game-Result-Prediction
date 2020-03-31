@@ -50,6 +50,7 @@ class Model(nn.Module):
         self.Dense16 = nn.Linear(64,16)
         self.Dense1  = nn.Linear(16,1)
         self.Sigmoid = nn.Sigmoid()
+        self.Softmax = nn.Softmax(dim=0)
         self.Dropout = nn.Dropout(p=0.2)
 
 
@@ -65,18 +66,14 @@ class Model(nn.Module):
         drop_feat = self.Dropout(team_feature)
 
         x64 = torch.tanh(self.Dense64(drop_feat))
-        drop = self.Dropout(x64)
+        drop1 = self.Dropout(x64)
 
-        x16 = torch.tanh(self.Dense16(drop))
-        drop = self.Dropout(x16)
+        x16 = torch.tanh(self.Dense16(drop1))
+        drop2 = self.Dropout(x16)
 
-        #x = torch.tanh(self.Dense1(x16)).view(2)
         #prediction = self.Sigmoid(self.Dense1(x16).view(2))
-        prediction = torch.tanh(self.Dense1(x16).view(2))
-        #print(prediction)
-        #prediction = self.Sigmoid(x)
-        #prediction = nn.Sigmoid()(self.Dense1(x16)) #only one of the two
-        #return torch.tensor(max(prediction))
+        #prediction = torch.tanh(self.Dense1(drop2).view(2))
+        prediction = self.Softmax(self.Dense1(drop2).view(2))
         return prediction # (P(Home-Won), P(Away-Won))
 
     def save_model(self, model, model_filepath='model.pkl'):
